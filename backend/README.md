@@ -388,3 +388,193 @@ loginUser('john.doe@example.com', 'securepassword123');
    ```
 
 4. **Click Send** to test the endpoint
+
+---
+
+### 3. User Logout
+**Endpoint:** `POST /users/logout`
+
+**Description:** 
+Logs out a user by clearing the authentication token cookie and adding the token to the blacklist. The blacklisted token will expire after 24 hours.
+
+---
+
+### Request Details
+
+**URL:** `http://localhost:4000/users/logout`
+
+**Method:** `POST`
+
+**Content-Type:** `application/json`
+
+**Authentication:** Required (Bearer Token or Cookie)
+
+---
+
+### Required Headers
+
+| Header | Value | Description |
+|--------|-------|-------------|
+| `Authorization` | `Bearer <token>` | JWT token from login (optional if using cookie) |
+| `Cookie` | `token=<token>` | JWT token stored in cookie (alternative to header) |
+
+---
+
+### Request Body Example
+
+```json
+{}
+```
+
+*No request body needed - authentication is provided via headers/cookies*
+
+---
+
+### Response Status Codes
+
+| Status Code | Description |
+|------------|-------------|
+| **200** | OK - User successfully logged out. |
+| **401** | Unauthorized - Missing or invalid token. |
+
+---
+
+### Successful Response (200)
+
+```json
+{
+  "message": "logged out"
+}
+```
+
+---
+
+### Error Response (401)
+
+**Missing Token:**
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Invalid or Expired Token:**
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Blacklisted Token:**
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+---
+
+### Validation Rules
+
+1. **Token Validation**
+   - Token must be present in either cookies or Authorization header
+   - Token must be valid and not expired
+   - Error: `"Unauthorized"`
+
+2. **Blacklist Management**
+   - Token is automatically added to blacklist database
+   - Blacklisted tokens are automatically deleted after 24 hours
+   - Expired tokens cannot be reused
+
+---
+
+### Notes
+
+- The token is cleared from cookies on the client side
+- Token is added to the blacklist to prevent reuse
+- Blacklist entries automatically expire and are deleted after 24 hours
+- After logout, user must login again to get a new token
+
+---
+
+### Testing Examples
+
+#### Using cURL with Bearer Token
+
+```bash
+curl -X POST http://localhost:4000/users/logout \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+#### Using cURL with Cookie
+
+```bash
+curl -X POST http://localhost:4000/users/logout \
+  -H "Content-Type: application/json" \
+  -H "Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+#### Using JavaScript Fetch
+
+```javascript
+// Logout function with Bearer Token
+async function logoutUser(token) {
+  try {
+    const response = await fetch('http://localhost:4000/users/logout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      console.log('Logout successful!');
+      console.log(data.message);
+      // Clear token from localStorage
+      localStorage.removeItem('authToken');
+      // Redirect to login page
+      window.location.href = '/login';
+    } else {
+      console.error('Logout failed:', data.message);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+// Usage
+const token = localStorage.getItem('authToken');
+logoutUser(token);
+```
+
+#### Using Postman
+
+1. **Create a new POST request**
+   - URL: `http://localhost:4000/users/logout`
+   - Method: `POST`
+
+2. **Set Headers**
+   - Key: `Content-Type`
+   - Value: `application/json`
+
+3. **Add Authorization**
+   - Go to `Authorization` tab
+   - Type: `Bearer Token`
+   - Token: Paste your JWT token from login response
+
+4. **Leave Body Empty** (raw JSON, empty object or no body)
+
+5. **Click Send** to logout
+
+---
+
+### API Flow Summary
+
+1. **User Registration** → POST `/users/register` → Get JWT token
+2. **User Login** → POST `/users/login` → Get JWT token
+3. **Use Token** → Include in Authorization header or cookies for protected routes
+4. **User Logout** → POST `/users/logout` → Token blacklisted and cleared
