@@ -943,10 +943,534 @@ registerCaptain(captainData);
 
 ---
 
+### 5. Captain Login
+**Endpoint:** `POST /captains/login`
+
+**Description:** 
+Authenticates a captain with email and password. Validates the credentials against the database and returns an authentication token if successful.
+
+---
+
+### Request Details
+
+**URL:** `http://localhost:4000/captains/login`
+
+**Method:** `POST`
+
+**Content-Type:** `application/json`
+
+---
+
+### Required Fields
+
+| Field | Type | Validation | Description |
+|-------|------|-----------|-------------|
+| `email` | String | Valid email format | Captain's registered email |
+| `password` | String | Min 6 characters | Captain's password |
+
+---
+
+### Request Body Example
+
+```json
+{
+  "email": "rajesh.kumar@example.com",
+  "password": "captain123"
+}
+```
+
+---
+
+### Response Status Codes
+
+| Status Code | Description |
+|------------|-------------|
+| **200** | OK - Captain successfully authenticated. Returns token and captain details. |
+| **400** | Bad Request - Validation failed. Returns array of validation errors. |
+| **401** | Unauthorized - Invalid email or password. |
+
+---
+
+### Successful Response (200)
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "captain": {
+    "_id": "507f1f77bcf86cd799439012",
+    "fullname": {
+      "firstname": "Rajesh",
+      "lastname": "Kumar"
+    },
+    "email": "rajesh.kumar@example.com",
+    "status": "inactive",
+    "vehicle": {
+      "color": "White",
+      "plate": "MH-01-AB-1234",
+      "capacity": 4,
+      "vehicleType": "car",
+      "location": {
+        "lat": 19.0760,
+        "lng": 72.8777
+      }
+    },
+    "createdAt": "2026-09-11T10:30:00.000Z",
+    "updatedAt": "2026-09-11T10:30:00.000Z"
+  }
+}
+```
+
+---
+
+### Error Response (400)
+
+**Invalid Email:**
+```json
+{
+  "errors": [
+    {
+      "msg": "Invalid Email",
+      "param": "email",
+      "location": "body"
+    }
+  ]
+}
+```
+
+**Password Too Short:**
+```json
+{
+  "errors": [
+    {
+      "msg": "Password must be at least 6 characters long",
+      "param": "password",
+      "location": "body"
+    }
+  ]
+}
+```
+
+---
+
+### Error Response (401)
+
+**Invalid Email or Password:**
+```json
+{
+  "message": "Invalid captain or password"
+}
+```
+
+---
+
+### Validation Rules
+
+1. **Email Validation**
+   - Must be a valid email format
+   - Error: `"Invalid Email"`
+
+2. **Password Validation**
+   - Minimum 6 characters required
+   - Error: `"Password must be at least 6 characters long"`
+   - Password is compared against the hashed password stored in the database
+
+---
+
+### Notes
+
+- The JWT token returned can be used for authentication in subsequent requests
+- Both email and password are required for login
+- Returns a generic error message for security
+- Captain must have registered first before attempting to login
+- JWT token expires after 24 hours
+
+---
+
+### Testing Examples
+
+#### Using cURL
+
+```bash
+curl -X POST http://localhost:4000/captains/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "rajesh.kumar@example.com",
+    "password": "captain123"
+  }'
+```
+
+#### Using JavaScript Fetch
+
+```javascript
+async function loginCaptain(email, password) {
+  try {
+    const response = await fetch('http://localhost:4000/captains/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: email,
+        password: password
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      console.log('Captain login successful!');
+      console.log('Token:', data.token);
+      console.log('Captain:', data.captain);
+      localStorage.setItem('captainToken', data.token);
+    } else {
+      console.error('Login failed:', data.message || data.errors);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+// Usage
+loginCaptain('rajesh.kumar@example.com', 'captain123');
+```
+
+---
+
+### 6. Captain Profile
+**Endpoint:** `GET /captains/profile`
+
+**Description:** 
+Retrieves the profile information of the authenticated captain. Requires a valid JWT token.
+
+---
+
+### Request Details
+
+**URL:** `http://localhost:4000/captains/profile`
+
+**Method:** `GET`
+
+**Authentication:** Required (Bearer Token or Cookie)
+
+---
+
+### Required Headers
+
+| Header | Value | Description |
+|--------|-------|-------------|
+| `Authorization` | `Bearer <token>` | JWT token from login |
+| `Cookie` | `token=<token>` | JWT token stored in cookie (alternative) |
+
+---
+
+### Response Status Codes
+
+| Status Code | Description |
+|------------|-------------|
+| **200** | OK - Successfully retrieved captain profile. |
+| **401** | Unauthorized - Missing or invalid token. |
+
+---
+
+### Successful Response (200)
+
+```json
+{
+  "_id": "507f1f77bcf86cd799439012",
+  "fullname": {
+    "firstname": "Rajesh",
+    "lastname": "Kumar"
+  },
+  "email": "rajesh.kumar@example.com",
+  "status": "inactive",
+  "vehicle": {
+    "color": "White",
+    "plate": "MH-01-AB-1234",
+    "capacity": 4,
+    "vehicleType": "car",
+    "location": {
+      "lat": 19.0760,
+      "lng": 72.8777
+    }
+  },
+  "createdAt": "2026-09-11T10:30:00.000Z",
+  "updatedAt": "2026-09-11T10:30:00.000Z"
+}
+```
+
+---
+
+### Error Response (401)
+
+**Missing Token:**
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Invalid or Expired Token:**
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+---
+
+### Validation Rules
+
+1. **Token Validation**
+   - Token must be present in either cookies or Authorization header
+   - Token must be valid and not expired
+   - Error: `"Unauthorized"`
+
+---
+
+### Notes
+
+- No request body needed - authentication is provided via headers/cookies
+- Returns complete captain profile including vehicle details
+- Sensitive fields like password are not included in the response
+
+---
+
+### Testing Examples
+
+#### Using cURL with Bearer Token
+
+```bash
+curl -X GET http://localhost:4000/captains/profile \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+#### Using JavaScript Fetch
+
+```javascript
+async function getCaptainProfile(token) {
+  try {
+    const response = await fetch('http://localhost:4000/captains/profile', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      console.log('Profile fetched successfully!');
+      console.log('Captain Name:', data.fullname.firstname + ' ' + data.fullname.lastname);
+      console.log('Email:', data.email);
+      console.log('Vehicle:', data.vehicle);
+      console.log('Status:', data.status);
+    } else {
+      console.error('Failed to fetch profile:', data.message);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+// Usage
+const token = localStorage.getItem('captainToken');
+getCaptainProfile(token);
+```
+
+#### Using Postman
+
+1. **Create a new GET request**
+   - URL: `http://localhost:4000/captains/profile`
+   - Method: `GET`
+
+2. **Add Authorization**
+   - Go to `Authorization` tab
+   - Type: `Bearer Token`
+   - Token: Paste your JWT token from login response
+
+3. **Click Send** to get the profile
+
+---
+
+### 7. Captain Logout
+**Endpoint:** `POST /captains/logout`
+
+**Description:** 
+Logs out a captain by clearing the authentication token cookie and adding the token to the blacklist. The blacklisted token will expire after 24 hours.
+
+---
+
+### Request Details
+
+**URL:** `http://localhost:4000/captains/logout`
+
+**Method:** `POST`
+
+**Content-Type:** `application/json`
+
+**Authentication:** Required (Bearer Token or Cookie)
+
+---
+
+### Required Headers
+
+| Header | Value | Description |
+|--------|-------|-------------|
+| `Authorization` | `Bearer <token>` | JWT token from login |
+| `Cookie` | `token=<token>` | JWT token stored in cookie (alternative) |
+
+---
+
+### Request Body Example
+
+```json
+{}
+```
+
+*No request body needed - authentication is provided via headers/cookies*
+
+---
+
+### Response Status Codes
+
+| Status Code | Description |
+|------------|-------------|
+| **200** | OK - Captain successfully logged out. |
+| **401** | Unauthorized - Missing or invalid token. |
+
+---
+
+### Successful Response (200)
+
+```json
+{
+  "message": "logged out"
+}
+```
+
+---
+
+### Error Response (401)
+
+**Missing Token:**
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Invalid or Expired Token:**
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Blacklisted Token:**
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+---
+
+### Validation Rules
+
+1. **Token Validation**
+   - Token must be present in either cookies or Authorization header
+   - Token must be valid and not expired
+   - Error: `"Unauthorized"`
+
+2. **Blacklist Management**
+   - Token is automatically added to blacklist database
+   - Blacklisted tokens are automatically deleted after 24 hours
+   - Token cannot be reused after logout
+
+---
+
+### Notes
+
+- The token is cleared from cookies on the client side
+- Token is added to the blacklist to prevent reuse
+- Blacklist entries automatically expire and are deleted after 24 hours
+- After logout, captain must login again to get a new token
+
+---
+
+### Testing Examples
+
+#### Using cURL with Bearer Token
+
+```bash
+curl -X POST http://localhost:4000/captains/logout \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+#### Using JavaScript Fetch
+
+```javascript
+async function logoutCaptain(token) {
+  try {
+    const response = await fetch('http://localhost:4000/captains/logout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      console.log('Logout successful!');
+      console.log(data.message);
+      // Clear token from localStorage
+      localStorage.removeItem('captainToken');
+      // Redirect to login page
+      window.location.href = '/login';
+    } else {
+      console.error('Logout failed:', data.message);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+// Usage
+const token = localStorage.getItem('captainToken');
+logoutCaptain(token);
+```
+
+#### Using Postman
+
+1. **Create a new POST request**
+   - URL: `http://localhost:4000/captains/logout`
+   - Method: `POST`
+
+2. **Set Headers**
+   - Key: `Content-Type`
+   - Value: `application/json`
+
+3. **Add Authorization**
+   - Go to `Authorization` tab
+   - Type: `Bearer Token`
+   - Token: Paste your JWT token from login response
+
+4. **Leave Body Empty** (raw JSON, empty object or no body)
+
+5. **Click Send** to logout
+
+---
+
 ### API Flow Summary
 
 1. **User Registration** → POST `/users/register` → Get JWT token
 2. **User Login** → POST `/users/login` → Get JWT token
-3. **Captain Registration** → POST `/captains/register` → Get JWT token
-4. **Use Token** → Include in Authorization header or cookies for protected routes
-5. **User/Captain Logout** → POST `/users/logout` or `/captains/logout` → Token blacklisted and cleared
+3. **User Profile** → GET `/users/profile` → Get user details (requires token)
+4. **User Logout** → POST `/users/logout` → Token blacklisted and cleared
+5. **Captain Registration** → POST `/captains/register` → Get JWT token
+6. **Captain Login** → POST `/captains/login` → Get JWT token
+7. **Captain Profile** → GET `/captains/profile` → Get captain details (requires token)
+8. **Captain Logout** → POST `/captains/logout` → Token blacklisted and cleared
