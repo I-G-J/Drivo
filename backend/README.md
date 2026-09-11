@@ -572,9 +572,381 @@ logoutUser(token);
 
 ---
 
+### 4. Captain Registration
+**Endpoint:** `POST /captains/register`
+
+**Description:** 
+Registers a new captain (driver) in the system. The endpoint validates the input data, hashes the password, creates a new captain with vehicle details in the database, and returns an authentication token.
+
+---
+
+### Request Details
+
+**URL:** `http://localhost:4000/captains/register`
+
+**Method:** `POST`
+
+**Content-Type:** `application/json`
+
+---
+
+### Required Fields
+
+| Field | Type | Validation | Description |
+|-------|------|-----------|-------------|
+| `fullname.firstname` | String | Min 3 characters | First name of the captain |
+| `fullname.lastname` | String | Min 3 characters | Last name of the captain |
+| `email` | String | Valid email format | Unique email address |
+| `password` | String | Min 6 characters | Captain's password (will be hashed) |
+| `vehicle.color` | String | Min 3 characters | Vehicle color |
+| `vehicle.plate` | String | Min 3 characters | Vehicle registration plate number |
+| `vehicle.capacity` | Number | Minimum 1 | Passenger capacity of vehicle |
+| `vehicle.vehicleType` | String | Must be: car, motorcycle, auto | Type of vehicle |
+| `vehicle.location.lat` | Number | Optional | Latitude coordinate of vehicle location |
+| `vehicle.location.lng` | Number | Optional | Longitude coordinate of vehicle location |
+
+---
+
+### Request Body Example
+
+```json
+{
+  "fullname": {
+    "firstname": "Rajesh",
+    "lastname": "Kumar"
+  },
+  "email": "rajesh.kumar@example.com",
+  "password": "captain123",
+  "vehicle": {
+    "color": "White",
+    "plate": "MH-01-AB-1234",
+    "capacity": 4,
+    "vehicleType": "car",
+    "location": {
+      "lat": 19.0760,
+      "lng": 72.8777
+    }
+  }
+}
+```
+
+---
+
+### Alternative Vehicle Type Examples
+
+**Motorcycle:**
+```json
+{
+  "fullname": {
+    "firstname": "Amit",
+    "lastname": "Singh"
+  },
+  "email": "amit.singh@example.com",
+  "password": "captain456",
+  "vehicle": {
+    "color": "Red",
+    "plate": "DL-01-CD-7890",
+    "capacity": 2,
+    "vehicleType": "motorcycle"
+  }
+}
+```
+
+**Auto Rickshaw:**
+```json
+{
+  "fullname": {
+    "firstname": "Priya",
+    "lastname": "Sharma"
+  },
+  "email": "priya.sharma@example.com",
+  "password": "captain789",
+  "vehicle": {
+    "color": "Yellow",
+    "plate": "KA-03-EF-3456",
+    "capacity": 3,
+    "vehicleType": "auto"
+  }
+}
+```
+
+---
+
+### Response Status Codes
+
+| Status Code | Description |
+|------------|-------------|
+| **201** | Created - Captain successfully registered. Returns token and captain details. |
+| **400** | Bad Request - Validation failed or captain already exists. Returns error details. |
+
+---
+
+### Successful Response (201)
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "captain": {
+    "_id": "507f1f77bcf86cd799439012",
+    "fullname": {
+      "firstname": "Rajesh",
+      "lastname": "Kumar"
+    },
+    "email": "rajesh.kumar@example.com",
+    "status": "inactive",
+    "vehicle": {
+      "color": "White",
+      "plate": "MH-01-AB-1234",
+      "capacity": 4,
+      "vehicleType": "car",
+      "location": {
+        "lat": 19.0760,
+        "lng": 72.8777
+      }
+    },
+    "createdAt": "2026-09-11T10:30:00.000Z",
+    "updatedAt": "2026-09-11T10:30:00.000Z"
+  }
+}
+```
+
+---
+
+### Error Response (400)
+
+**All Fields Invalid:**
+```json
+{
+  "errors": [
+    {
+      "msg": "Invalid Email",
+      "param": "email",
+      "location": "body"
+    },
+    {
+      "msg": "First name must be at least 3 characters long",
+      "param": "fullname.firstname",
+      "location": "body"
+    },
+    {
+      "msg": "Password must be at least 6 characters long",
+      "param": "password",
+      "location": "body"
+    },
+    {
+      "msg": "Color must be at least 3 characters long",
+      "param": "vehicle.color",
+      "location": "body"
+    },
+    {
+      "msg": "Plate must be at least 3 characters long",
+      "param": "vehicle.plate",
+      "location": "body"
+    },
+    {
+      "msg": "Capacity must be at least 1",
+      "param": "vehicle.capacity",
+      "location": "body"
+    },
+    {
+      "msg": "Invalid vehicle type",
+      "param": "vehicle.vehicleType",
+      "location": "body"
+    }
+  ]
+}
+```
+
+**Captain Already Exists:**
+```json
+{
+  "message": "Captain already exist"
+}
+```
+
+**Invalid Vehicle Type:**
+```json
+{
+  "errors": [
+    {
+      "msg": "Invalid vehicle type",
+      "param": "vehicle.vehicleType",
+      "location": "body"
+    }
+  ]
+}
+```
+
+---
+
+### Validation Rules
+
+1. **Email Validation**
+   - Must be a valid email format
+   - Must be unique in the database
+   - Duplicate email returns: `"Captain already exist"`
+   - Error: `"Invalid Email"`
+
+2. **First Name Validation**
+   - Minimum 3 characters required
+   - Error: `"First name must be at least 3 characters long"`
+
+3. **Password Validation**
+   - Minimum 6 characters required (shorter than user password)
+   - Error: `"Password must be at least 6 characters long"`
+   - Password is automatically hashed using bcrypt before storing
+
+4. **Vehicle Details Validation**
+   - **Color**: Minimum 3 characters
+   - **Plate**: Minimum 3 characters
+   - **Capacity**: Minimum value of 1
+   - **Vehicle Type**: Must be one of: `car`, `motorcycle`, `auto`
+
+---
+
+### Notes
+
+- The JWT token returned can be used for authentication in subsequent requests
+- Captain status is set to `inactive` by default and must be activated by admin
+- Password is hashed using bcrypt with 10 salt rounds before storing
+- JWT token expires after 24 hours
+- Token format should include expiresIn of 24h
+
+---
+
+### Testing Examples
+
+#### Using cURL
+
+**Successful Registration (Car):**
+```bash
+curl -X POST http://localhost:4000/captains/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fullname": {
+      "firstname": "Rajesh",
+      "lastname": "Kumar"
+    },
+    "email": "rajesh.kumar@example.com",
+    "password": "captain123",
+    "vehicle": {
+      "color": "White",
+      "plate": "MH-01-AB-1234",
+      "capacity": 4,
+      "vehicleType": "car"
+    }
+  }'
+```
+
+**Successful Registration (Motorcycle):**
+```bash
+curl -X POST http://localhost:4000/captains/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fullname": {
+      "firstname": "Amit",
+      "lastname": "Singh"
+    },
+    "email": "amit.singh@example.com",
+    "password": "captain456",
+    "vehicle": {
+      "color": "Red",
+      "plate": "DL-01-CD-7890",
+      "capacity": 2,
+      "vehicleType": "motorcycle"
+    }
+  }'
+```
+
+#### Using JavaScript Fetch
+
+```javascript
+// Captain Registration function
+async function registerCaptain(captainData) {
+  try {
+    const response = await fetch('http://localhost:4000/captains/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(captainData)
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      console.log('Captain registration successful!');
+      console.log('Token:', data.token);
+      console.log('Captain:', data.captain);
+      // Store token in localStorage for future requests
+      localStorage.setItem('captainToken', data.token);
+    } else {
+      console.error('Registration failed:', data.message || data.errors);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+// Usage
+const captainData = {
+  fullname: {
+    firstname: "Rajesh",
+    lastname: "Kumar"
+  },
+  email: "rajesh.kumar@example.com",
+  password: "captain123",
+  vehicle: {
+    color: "White",
+    plate: "MH-01-AB-1234",
+    capacity: 4,
+    vehicleType: "car",
+    location: {
+      lat: 19.0760,
+      lng: 72.8777
+    }
+  }
+};
+
+registerCaptain(captainData);
+```
+
+#### Using Postman
+
+1. **Create a new POST request**
+   - URL: `http://localhost:4000/captains/register`
+   - Method: `POST`
+
+2. **Set Headers**
+   - Key: `Content-Type`
+   - Value: `application/json`
+
+3. **Set Body (raw JSON)**
+   ```json
+   {
+     "fullname": {
+       "firstname": "Rajesh",
+       "lastname": "Kumar"
+     },
+     "email": "rajesh.kumar@example.com",
+     "password": "captain123",
+     "vehicle": {
+       "color": "White",
+       "plate": "MH-01-AB-1234",
+       "capacity": 4,
+       "vehicleType": "car"
+     }
+   }
+   ```
+
+4. **Click Send** to test the endpoint
+
+---
+
 ### API Flow Summary
 
 1. **User Registration** → POST `/users/register` → Get JWT token
 2. **User Login** → POST `/users/login` → Get JWT token
-3. **Use Token** → Include in Authorization header or cookies for protected routes
-4. **User Logout** → POST `/users/logout` → Token blacklisted and cleared
+3. **Captain Registration** → POST `/captains/register` → Get JWT token
+4. **Use Token** → Include in Authorization header or cookies for protected routes
+5. **User/Captain Logout** → POST `/users/logout` or `/captains/logout` → Token blacklisted and cleared
