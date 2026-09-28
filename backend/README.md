@@ -685,7 +685,7 @@ Registers a new captain (driver) in the system. The endpoint validates the input
 
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // token may be different this is only for understanding purpopse
   "captain": {
     "_id": "507f1f77bcf86cd799439012",
     "fullname": {
